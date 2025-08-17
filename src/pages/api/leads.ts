@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { appendLeadRow } from '@/lib/sheets';
+import { appendLeadRow } from '../../lib/sheets';
 
 type LeadReq = {
   source?: string;
