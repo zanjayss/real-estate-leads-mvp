@@ -1,22 +1,27 @@
-import { google } from 'googleapis';
+import { google } from "googleapis";
 
-export async function appendLeadRow(row: any[]) {
-const auth = new google.auth.JWT({
-  email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-});
+// Decode the base64 string back into JSON
+const credentials = JSON.parse(
+  Buffer.from(process.env.GOOGLE_CREDENTIALS_BASE64!, "base64").toString("utf8")
+);
 
+const auth = new google.auth.JWT(
+  credentials.client_email,
+  undefined,
+  credentials.private_key,
+  ["https://www.googleapis.com/auth/spreadsheets"]
+);
 
-  const sheets = google.sheets({ version: 'v4', auth });
+const sheets = google.sheets({ version: "v4", auth });
 
-  const spreadsheetId = process.env.SHEET_ID;
-  const range = 'Leads!A:J';
-
+export async function appendLeadRow(values: string[]) {
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID!;
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [row] },
+    range: "Leads!A:Z",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [values],
+    },
   });
 }
