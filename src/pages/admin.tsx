@@ -7,6 +7,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState<boolean>(false);
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const saved = window.localStorage.getItem("adminPass");
@@ -46,78 +47,120 @@ export default function AdminPage() {
     setPassword("");
     setAuthed(false);
     setLeads(null);
+    setQuery("");
   }
 
+  const filtered = useMemo(() => {
+    if (!leads) return null;
+    if (!query.trim()) return leads;
+    const q = query.toLowerCase();
+    return leads.filter((row) =>
+      Object.values(row).some((v) => (v || "").toLowerCase().includes(q))
+    );
+  }, [leads, query]);
+
   const csvHref = useMemo(() => {
-    if (!leads || leads.length === 0) return "";
-    const headers = Object.keys(leads[0]);
+    if (!filtered || filtered.length === 0) return "";
+    const headers = Object.keys(filtered[0]);
     const lines = [
       headers.join(","),
-      ...leads.map((row) =>
-        headers.map((h) => JSON.stringify((row[h] || "").replace(/\r?\n/g, " "))).join(",")
+      ...filtered.map((row) =>
+        headers
+          .map((h) => JSON.stringify((row[h] || "").replace(/\r?\n/g, " ")))
+          .join(",")
       ),
     ];
     const csv = lines.join("\n");
     return "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-  }, [leads]);
+  }, [filtered]);
 
   return (
-    <main style={{ maxWidth: 960, margin: "40px auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Admin — Leads</h1>
+    <main className="max-w-6xl mx-auto p-6 font-sans">
+      <header className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Admin — Leads</h1>
+        {authed && (
+          <button
+            onClick={onLogout}
+            className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+          >
+            Logout
+          </button>
+        )}
+      </header>
 
       {!authed ? (
-        <form onSubmit={onLogin} style={{ display: "grid", gap: 8, maxWidth: 320 }}>
+        <form onSubmit={onLogin} className="max-w-sm grid gap-3">
           <input
             type="password"
             placeholder="Admin password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ padding: 10, border: "1px solid #ccc", borderRadius: 6 }}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
           />
-          <button type="submit" style={{ padding: 10, borderRadius: 8, background: "#111", color: "#fff", border: "none" }}>
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-lg bg-black text-white font-semibold hover:bg-black/90"
+          >
             Enter
           </button>
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
+          {error && <p className="text-red-600">{error}</p>}
         </form>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-            <button onClick={() => loadLeads(password)} style={{ padding: 8, borderRadius: 6 }}>
-              Refresh
-            </button>
-            <a
-              href={csvHref || "#"}
-              download="leads.csv"
-              style={{ padding: 8, borderRadius: 6, pointerEvents: csvHref ? "auto" : "none", color: csvHref ? "#06c" : "#888" }}
-            >
-              Download CSV
-            </a>
-            <button onClick={onLogout} style={{ padding: 8, borderRadius: 6 }}>
-              Logout
-            </button>
+          <div className="flex flex-col md:flex-row gap-3 items-start md:items-center mb-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => loadLeads(password)}
+                className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+              >
+                Refresh
+              </button>
+              <a
+                href={csvHref || "#"}
+                download="leads.csv"
+                className={`px-3 py-2 rounded-lg border ${
+                  csvHref
+                    ? "border-gray-300 text-blue-600 hover:bg-gray-50"
+                    : "border-gray-200 text-gray-400 pointer-events-none"
+                }`}
+              >
+                Download CSV
+              </a>
+            </div>
+
+            <input
+              placeholder="Search all fields…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 w-full md:w-72"
+            />
           </div>
 
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
+          {error && <p className="text-red-600 mb-3">{error}</p>}
 
-          {!leads ? (
+          {!filtered ? (
             <p>Click “Refresh” to load leads.</p>
-          ) : leads.length === 0 ? (
-            <p>No leads yet.</p>
+          ) : filtered.length === 0 ? (
+            <p>No leads found.</p>
           ) : (
-            <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: 8 }}>
-              <table cellPadding={8} style={{ borderCollapse: "collapse", width: "100%" }}>
-                <thead style={{ background: "#f6f6f6" }}>
+            <div className="overflow-x-auto border border-gray-200 rounded-xl">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left">
                   <tr>
-                    {Object.keys(leads[0]).map((h) => (
-                      <th key={h} style={{ textAlign: "left", borderBottom: "1px solid #eee" }}>{h}</th>
+                    {Object.keys(filtered[0]).map((h) => (
+                      <th key={h} className="px-3 py-2 border-b border-gray-200 font-semibold">
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {leads.map((row, i) => (
-                    <tr key={i}>
-                      {Object.keys(leads[0]).map((h) => (
-                        <td key={h} style={{ borderBottom: "1px solid #f2f2f2", fontSize: 14 }}>{row[h] || ""}</td>
+                  {filtered.map((row, i) => (
+                    <tr key={i} className="odd:bg-white even:bg-gray-50">
+                      {Object.keys(filtered[0]).map((h) => (
+                        <td key={h} className="px-3 py-2 border-b border-gray-100">
+                          {row[h] || ""}
+                        </td>
                       ))}
                     </tr>
                   ))}
