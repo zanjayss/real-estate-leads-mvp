@@ -1,3 +1,9 @@
+# Dependencies
 node_modules
+
+# Environment files (local only)
 .env
+.env.local
+
+# Service account key (never commit)
 real-estate-leads-469221-f449e381a576.json
