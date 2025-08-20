@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { appendLeadRow } from '../../lib/sheets';
+import { sendLeadEmail } from '../../lib/mail';
 
 type LeadReq = {
   source?: string;
@@ -19,10 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 
-  // handle raw string or parsed JSON bodies
   const body: LeadReq = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-  // minimal validation
   if (!body?.name && !body?.email && !body?.phone) {
     return res.status(400).json({ error: 'Provide at least name or email or phone' });
   }
@@ -42,6 +41,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       body.zip || '',
       body.notes || '',
     ]);
+
+    try {
+      await sendLeadEmail({
+        source: body.source,
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        zip: body.zip,
+        notes: body.notes,
+      });
+    } catch (emailErr: any) {
+      console.error('Email notify error:', emailErr?.message || emailErr);
+    }
 
     return res.status(201).json({ ok: true });
   } catch (e: any) {
