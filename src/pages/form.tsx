@@ -5,8 +5,12 @@ export default function LeadFormPage() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // 🔧 capture the form element BEFORE any await
+    const formEl = e.currentTarget;
+
     setStatus('Sending...');
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     const payload = Object.fromEntries(form.entries());
 
     try {
@@ -15,9 +19,10 @@ export default function LeadFormPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
       if (res.ok) {
         setStatus('Saved! Check your email.');
-        e.currentTarget.reset();
+        formEl.reset(); // ✅ safe now
       } else {
         const t = await res.text();
         setStatus(`Failed: ${t}`);
@@ -59,7 +64,10 @@ export default function LeadFormPage() {
           placeholder="Notes"
           style={{ padding: 10, border: '1px solid #ccc', borderRadius: 6, minHeight: 80 }}
         />
-        <button type="submit" style={{ padding: 12, borderRadius: 8, border: 'none', background: '#111', color: 'white', fontWeight: 600 }}>
+        <button
+          type="submit"
+          style={{ padding: 12, borderRadius: 8, border: 'none', background: '#111', color: 'white', fontWeight: 600 }}
+        >
           Submit
         </button>
       </form>
