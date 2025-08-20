@@ -25,3 +25,25 @@ export async function appendLeadRow(row: any[]) {
   });
 }
 
+// NEW: Fetch all leads as objects with column headers
+export async function getLeads(): Promise<Array<Record<string, string>>> {
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID!;
+
+  const get = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Leads!A1:J10000", // adjust if you expect >10k rows
+  });
+
+  const rows = get.data.values || [];
+  if (rows.length === 0) return [];
+
+  const [header, ...data] = rows;
+
+  return data.map((r) => {
+    const obj: Record<string, string> = {};
+    header.forEach((h: string, i: number) => {
+      obj[h] = r[i] ?? "";
+    });
+    return obj;
+  });
+}
